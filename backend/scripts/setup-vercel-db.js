@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * Apply schema + seed to Vercel/Neon Postgres using env connection vars.
+ * Reset schema + seed on Vercel/Neon Postgres using env connection vars.
  * Run locally after: vercel env pull .env.local
  *   cd backend && node scripts/setup-vercel-db.js
  */
@@ -33,6 +33,7 @@ async function main() {
   console.log('[DB] connected');
 
   const dbDir = path.join(__dirname, '../src/db');
+  await runSqlFile(path.join(dbDir, 'drop.sql'));
   await runSqlFile(path.join(dbDir, 'schema.sql'));
   await runSqlFile(path.join(dbDir, 'seed.sql'));
 

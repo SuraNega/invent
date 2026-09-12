@@ -49,7 +49,7 @@ const healthHandler = async (_req, res) => {
   const dbStatus = getDbStatus();
   const payload = {
     success: true,
-    message: 'ClothTrack API is running',
+    message: "Momi's Kitchenware API is running",
     timestamp: new Date(),
     db: dbStatus,
   };

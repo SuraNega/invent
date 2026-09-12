@@ -1,6 +1,6 @@
-# ClothTrack Backend — API Documentation
+# Momi's Kitchenware Backend — API Documentation
 
-Documentation for frontend developers. This backend powers the **ClothTrack** cloth inventory management system (products, stock, sales, returns, QR labels, alerts, reports).
+Documentation for frontend developers. This backend powers the **Momi's Kitchenware** inventory management system (products, stock, sales, returns, QR labels, alerts, reports).
 
 ---
 
@@ -9,13 +9,13 @@ Documentation for frontend developers. This backend powers the **ClothTrack** cl
 | Area | Status | Notes |
 |------|--------|--------|
 | PostgreSQL database `clothtrack` | Done | 10 tables, indexes, triggers |
-| Schema + seed SQL | Done | `src/db/schema.sql`, `src/db/seed.sql` |
+| Schema + seed SQL | Done | `src/db/drop.sql`, `src/db/schema.sql`, `src/db/seed.sql` |
 | Node.js + Express API | Done | Modular routes under `src/modules/` |
 | JWT authentication | Done | Login, logout, `/me` |
 | Role-based access | Done | `owner`, `cashier`, `sales` |
 | Users (staff) CRUD | Done | Owner manages accounts |
 | Categories & suppliers | Done | Full CRUD |
-| Products + SKU auto-generate | Done | Format: `CLT-YYYYMMDD-0001` |
+| Products + SKU auto-generate | Done | Format: `KIT-YYYYMMDD-0001` |
 | QR scan lookup by SKU | Done | `GET /api/products/sku/:sku` |
 | Stock movements (audit log) | Done | Read-only API |
 | Sales (POS checkout) | Done | Atomic transaction + stock update |
@@ -45,7 +45,8 @@ Documentation for frontend developers. This backend powers the **ClothTrack** cl
 ```bash
 cd backend
 npm install
-# Ensure PostgreSQL is running and schema/seed are applied
+# Reset database and reapply schema/seed
+npm run db:reset
 # Existing DBs with old roles (manager/cashier): npm run db:migrate-roles
 npm run dev
 ```
@@ -131,9 +132,9 @@ Validation errors may include:
 | Table | Purpose |
 |-------|---------|
 | `users` | Staff logins and roles |
-| `categories` | Product types (Shirts, Jeans, …) |
+| `categories` | Product types (cookware, bakeware, tools, etc.) |
 | `suppliers` | Who supplies products |
-| `products` | Clothing items, SKU, price, stock qty |
+| `products` | Kitchenware items, SKU, capacity, material, brand, price, stock qty |
 | `stock_movements` | Every stock in/out (audit trail) |
 | `sales` | Checkout transactions |
 | `sale_items` | Line items per sale |
@@ -152,6 +153,7 @@ backend/
 │   ├── app.js                # Express app + route mounting
 │   ├── config/db.js          # PostgreSQL connection pool
 │   ├── db/
+│   │   ├── drop.sql          # Drop all objects for a clean rebuild
 │   │   ├── schema.sql        # Create all tables
 │   │   └── seed.sql          # Admin user + sample data
 │   ├── middleware/
@@ -196,7 +198,7 @@ Legend:
 ```json
 {
   "success": true,
-  "message": "ClothTrack API is running",
+  "message": "Momi's Kitchenware API is running",
   "timestamp": "2026-06-01T17:42:12.999Z"
 }
 ```
@@ -279,7 +281,7 @@ Legend:
 
 ```json
 {
-  "name": "Shirts",
+  "name": "Cookware",
   "description": "Optional description"
 }
 ```
@@ -328,43 +330,53 @@ Legend:
 |-------|---------|-------------|
 | `category_id` | `4` | Filter by category |
 | `supplier_id` | `2` | Filter by supplier |
-| `size` | `L` | Filter by size |
-| `color` | `Blue` | Filter by color |
-| `search` | `denim` | Search name or SKU |
+| `size` | `28 cm` | Filter by size/capacity |
+| `color` | `Silver` | Filter by color/finish |
+| `material` | `Stainless Steel` | Filter by material |
+| `brand` | `Momi` | Filter by brand |
+| `search` | `saucepan` | Search name or SKU |
 
 **POST body (create):**
 
 ```json
 {
-  "name": "Men Blue Denim Jacket",
+  "name": "Stainless Steel Saucepan",
   "unit_price": 850,
   "cost_price": 500,
-  "category_id": 4,
+  "category_id": 1,
   "supplier_id": 1,
-  "size": "L",
-  "color": "Blue",
+  "size": "28 cm",
+  "color": "Silver",
+  "material": "Stainless Steel",
+  "brand": "Momi",
+  "unit_of_sale": "piece",
+  "set_pieces": null,
   "quantity": 20,
   "low_stock_threshold": 5,
-  "description": "Optional"
+  "description": "Optional care or warranty note"
 }
 ```
 
-- `sku` is auto-generated if omitted (`CLT-YYYYMMDD-0001`).
+- `sku` is auto-generated if omitted (`KIT-YYYYMMDD-0001`).
 - Initial `quantity` creates a `stock_in` movement automatically.
 
 **PATCH `/api/products/:id` — body (all fields optional):**
 
 ```json
 {
-  "name": "Men Blue Denim Jacket",
+  "name": "Stainless Steel Saucepan",
   "unit_price": 850,
   "cost_price": 500,
-  "category_id": 4,
+  "category_id": 1,
   "supplier_id": 1,
-  "size": "L",
-  "color": "Blue",
+  "size": "28 cm",
+  "color": "Silver",
+  "material": "Stainless Steel",
+  "brand": "Momi",
+  "unit_of_sale": "piece",
+  "set_pieces": null,
   "low_stock_threshold": 5,
-  "description": "Optional"
+  "description": "Optional care or warranty note"
 }
 ```
 
@@ -503,7 +515,7 @@ Read-only audit log. Every sale, restock, adjustment, and return writes here.
 {
   "product_id": 1,
   "quantity": 1,
-  "reason": "wrong_size",
+  "reason": "wrong_item",
   "condition": "resellable",
   "refund_type": "cash",
   "sale_id": 5,
@@ -514,12 +526,12 @@ Read-only audit log. Every sale, restock, adjustment, and return writes here.
 
 | Field | Allowed values |
 |-------|----------------|
-| `reason` | `wrong_size`, `defective`, `changed_mind`, `other` |
-| `condition` | `resellable`, `damaged`, `missing_tags` |
+| `reason` | `wrong_item`, `defective`, `changed_mind`, `other` |
+| `condition` | `resellable`, `damaged`, `incomplete_set` |
 | `refund_type` | `cash`, `store_credit`, `exchange` |
 
 - **`resellable`**: stock is added back to inventory.
-- **`damaged`** / **`missing_tags`**: logged only, stock not restored.
+- **`damaged`** / **`incomplete_set`**: logged only, stock not restored.
 
 ---
 
@@ -606,8 +618,8 @@ Response:
             "total_amount": "1700.00",
             "items": [
               {
-                "product_name": "Men Blue Denim Jacket",
-                "product_sku": "CLT-20260601-0001",
+                "product_name": "Stainless Steel Saucepan",
+                "product_sku": "KIT-20260601-0001",
                 "quantity": 2,
                 "unit_price": "850.00",
                 "subtotal": "1700.00"
@@ -618,7 +630,7 @@ Response:
         "returns": [
           {
             "return_code": "RET-20260608-5678",
-            "product_name": "Men Blue Denim Jacket",
+            "product_name": "Stainless Steel Saucepan",
             "quantity": 1,
             "refund_amount": "850.00",
             "created_at": "2026-06-08T16:00:00.000Z"
@@ -694,9 +706,9 @@ GET /api/alerts
 
 **Stock movement type:** `stock_in`, `sale`, `adjustment`, `return`, `damaged`
 
-**Return reason:** `wrong_size`, `defective`, `changed_mind`, `other`
+**Return reason:** `wrong_item`, `defective`, `changed_mind`, `other`
 
-**Return condition:** `resellable`, `damaged`, `missing_tags`
+**Return condition:** `resellable`, `damaged`, `incomplete_set`
 
 **Refund type:** `cash`, `store_credit`, `exchange`
 
@@ -730,4 +742,4 @@ curl http://localhost:3001/api/categories \
 
 ---
 
-*ClothTrack Backend v1.0 — Node.js + Express + PostgreSQL*
+*Momi's Kitchenware Backend v1.0 — Node.js + Express + PostgreSQL*

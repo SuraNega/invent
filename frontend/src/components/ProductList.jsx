@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Plus, RefreshCw, Printer, AlertTriangle, X, ArrowRightLeft, Pencil, Trash2 } from 'lucide-react';
 import { formatBirr } from '../utils/formatBirr';
@@ -9,14 +9,15 @@ export default function ProductList({ token, userRole, addToCart }) {
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [toast, setToast] = useState({ show: false, message: '' });
+  const toastTimeoutRef = useRef(null);
 
   // Filters state
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sizeFilter, setSizeFilter] = useState('');
-  const [colorFilter, setColorFilter] = useState('');
+  const [materialFilter, setMaterialFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -37,6 +38,10 @@ export default function ProductList({ token, userRole, addToCart }) {
     supplier_name: '', // free-text; matched to supplier_id on submit
     size: '',
     color: '',
+    material: '',
+    brand: '',
+    unit_of_sale: 'piece',
+    set_pieces: '',
     quantity: '',
     low_stock_threshold: '',
     description: '',
@@ -50,40 +55,18 @@ export default function ProductList({ token, userRole, addToCart }) {
 
   const [generatedQr, setGeneratedQr] = useState(null);
 
-  // ── Men's clothing constants ─────────────────────────────────
-  const CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const SHOE_SIZES_EU = [
-    { eu: '38',   cm: '24.0' }, { eu: '38.5', cm: '24.3' },
-    { eu: '39',   cm: '24.7' }, { eu: '39.5', cm: '25.0' },
-    { eu: '40',   cm: '25.3' }, { eu: '40.5', cm: '25.7' },
-    { eu: '41',   cm: '26.0' }, { eu: '41.5', cm: '26.3' },
-    { eu: '42',   cm: '26.7' }, { eu: '42.5', cm: '27.0' },
-    { eu: '43',   cm: '27.3' }, { eu: '43.5', cm: '27.7' },
-    { eu: '44',   cm: '28.0' }, { eu: '44.5', cm: '28.3' },
-    { eu: '45',   cm: '28.7' }, { eu: '45.5', cm: '29.0' },
-    { eu: '46',   cm: '29.3' }, { eu: '46.5', cm: '29.7' },
-    { eu: '47',   cm: '30.0' }
+  const MATERIAL_HINTS = [
+    'Stainless Steel', 'Cast Iron', 'Non-stick', 'Ceramic', 'Glass',
+    'Wood', 'Silicone', 'Plastic', 'Aluminum'
   ];
-  const MEN_COLORS = [
-    'Black', 'White', 'Navy Blue', 'Charcoal Gray', 'Light Gray',
-    'Olive Green', 'Khaki / Beige', 'Burgundy', 'Brown', 'Camel',
-    'Royal Blue', 'Sky Blue', 'Forest Green', 'Mustard Yellow',
-    'Red', 'Off-White / Cream', 'Teal', 'Maroon', 'Dark Green', 'Coral'
+  const CAPACITY_HINTS = [
+    '20 cm', '24 cm', '28 cm', '1 L', '1.5 L', '3 L', '5 L',
+    'Set of 3', 'Set of 5', 'Set of 12'
   ];
-
-  // Returns 'shoes' | 'none' | 'clothing' based on selected category
-  const getSizeType = (categoryRef) => {
-    if (!categoryRef) return 'clothing';
-    const cat = categories.find(
-      (c) => String(c.id) === String(categoryRef)
-        || c.name.toLowerCase() === String(categoryRef).trim().toLowerCase()
-    );
-    const name = cat ? cat.name : String(categoryRef);
-    const n = name.toLowerCase();
-    if (n.includes('shoe') || n.includes('boot')) return 'shoes';
-    if (n.includes('neck tie') || n.includes('necktie') || n.includes('tie')) return 'none';
-    return 'clothing';
-  };
+  const COLOR_HINTS = [
+    'Black', 'Silver', 'White', 'Red', 'Blue', 'Copper', 'Gray', 'Beige', 'Multicolor'
+  ];
+  const UNIT_OPTIONS = ['piece', 'set', 'pack'];
 
   const getCategoryHistory = () => {
     try { return JSON.parse(localStorage.getItem('category_history') || '[]'); }
@@ -132,12 +115,10 @@ export default function ProductList({ token, userRole, addToCart }) {
     return data.data.id;
   };
 
-  const handleCategoryNameChange = (formKey, value, setter) => {
-    const sizeType = getSizeType(value);
+  const handleCategoryNameChange = (_formKey, value, setter) => {
     setter((prev) => ({
       ...prev,
       category_name: value,
-      size: sizeType === 'none' ? 'One Size' : (formKey === 'add' && sizeType !== getSizeType(prev.category_name) ? '' : prev.size),
     }));
   };
 
@@ -175,7 +156,8 @@ export default function ProductList({ token, userRole, addToCart }) {
       if (search) query.append('search', search);
       if (categoryFilter) query.append('category_id', categoryFilter);
       if (sizeFilter) query.append('size', sizeFilter);
-      if (colorFilter) query.append('color', colorFilter);
+      if (materialFilter) query.append('material', materialFilter);
+      if (brandFilter) query.append('brand', brandFilter);
 
       const headers = { 'Authorization': `Bearer ${token}` };
 
@@ -200,7 +182,6 @@ export default function ProductList({ token, userRole, addToCart }) {
 
     } catch (err) {
       console.error('[FETCH DATA ERR]', err);
-      setError('Failed to fetch data.');
     } finally {
       setLoading(false);
     }
@@ -208,7 +189,7 @@ export default function ProductList({ token, userRole, addToCart }) {
 
   useEffect(() => {
     fetchData();
-  }, [search, categoryFilter, sizeFilter, colorFilter, token]);
+  }, [search, categoryFilter, sizeFilter, materialFilter, brandFilter, token]);
 
   const [addError, setAddError] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -222,8 +203,8 @@ export default function ProductList({ token, userRole, addToCart }) {
 
   const showToast = (message) => {
     setToast({ show: true, message });
-    if (window.toastTimeout) clearTimeout(window.toastTimeout);
-    window.toastTimeout = setTimeout(() => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    toastTimeoutRef.current = setTimeout(() => {
       setToast({ show: false, message: '' });
     }, 2500);
   };
@@ -268,6 +249,12 @@ export default function ProductList({ token, userRole, addToCart }) {
       }
       if (newProduct.size) body.size = newProduct.size.trim();
       if (newProduct.color) body.color = newProduct.color.trim();
+      if (newProduct.material) body.material = newProduct.material.trim();
+      if (newProduct.brand) body.brand = newProduct.brand.trim();
+      body.unit_of_sale = newProduct.unit_of_sale || 'piece';
+      if (newProduct.unit_of_sale === 'set' && newProduct.set_pieces) {
+        body.set_pieces = parseInt(newProduct.set_pieces, 10);
+      }
       body.quantity = newProduct.quantity ? parseInt(newProduct.quantity, 10) : 0;
       body.low_stock_threshold = newProduct.low_stock_threshold ? parseInt(newProduct.low_stock_threshold, 10) : 5;
       if (newProduct.sku) body.sku = newProduct.sku.trim();
@@ -296,7 +283,8 @@ export default function ProductList({ token, userRole, addToCart }) {
       setAddError('');
       setNewProduct({
         name: '', unit_price: '', cost_price: '', category_name: '',
-        supplier_name: '', size: '', color: '', quantity: '',
+        supplier_name: '', size: '', color: '', material: '', brand: '',
+        unit_of_sale: 'piece', set_pieces: '', quantity: '',
         low_stock_threshold: '', description: '', sku: ''
       });
       fetchData();
@@ -351,6 +339,10 @@ export default function ProductList({ token, userRole, addToCart }) {
         || '',
       size: product.size || '',
       color: product.color || '',
+      material: product.material || '',
+      brand: product.brand || '',
+      unit_of_sale: product.unit_of_sale || 'piece',
+      set_pieces: product.set_pieces != null ? String(product.set_pieces) : '',
       low_stock_threshold: product.low_stock_threshold != null ? String(product.low_stock_threshold) : '5',
       description: product.description || '',
       sku: product.sku,
@@ -374,6 +366,10 @@ export default function ProductList({ token, userRole, addToCart }) {
     }
     if (form.size) body.size = form.size.trim();
     if (form.color) body.color = form.color.trim();
+    if (form.material) body.material = form.material.trim();
+    if (form.brand) body.brand = form.brand.trim();
+    body.unit_of_sale = form.unit_of_sale || 'piece';
+    body.set_pieces = form.unit_of_sale === 'set' && form.set_pieces ? parseInt(form.set_pieces, 10) : null;
     if (includeQuantity) {
       body.quantity = form.quantity ? parseInt(form.quantity, 10) : 0;
     }
@@ -530,6 +526,7 @@ export default function ProductList({ token, userRole, addToCart }) {
 
   const isRestricted = userRole === 'sales';
   const isOwner = userRole === 'owner';
+  const brandFilterOptions = Array.from(new Set(products.map(p => p.brand).filter(Boolean))).sort();
 
   return (
     <div className="animate-fade">
@@ -566,12 +563,22 @@ export default function ProductList({ token, userRole, addToCart }) {
 
         <div className="filter-dropdown-wrap filter-dropdown-size">
           <select value={sizeFilter} onChange={(e) => setSizeFilter(e.target.value)}>
-            <option value="">Size</option>
-            <option value="S">S</option>
-            <option value="M">M</option>
-            <option value="L">L</option>
-            <option value="XL">XL</option>
-            <option value="XXL">XXL</option>
+            <option value="">Capacity</option>
+            {CAPACITY_HINTS.map(size => <option key={size} value={size}>{size}</option>)}
+          </select>
+        </div>
+
+        <div className="filter-dropdown-wrap">
+          <select value={materialFilter} onChange={(e) => setMaterialFilter(e.target.value)}>
+            <option value="">Material</option>
+            {MATERIAL_HINTS.map(material => <option key={material} value={material}>{material}</option>)}
+          </select>
+        </div>
+
+        <div className="filter-dropdown-wrap">
+          <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)}>
+            <option value="">Brand</option>
+            {brandFilterOptions.map(brand => <option key={brand} value={brand}>{brand}</option>)}
           </select>
         </div>
 
@@ -593,7 +600,7 @@ export default function ProductList({ token, userRole, addToCart }) {
                 <th>Product Info</th>
                 <th>SKU</th>
                 <th>Category</th>
-                <th>Size / Color</th>
+                <th>Capacity / Material / Brand</th>
                 <th>Price</th>
                 {!isRestricted && <th>Cost Value</th>}
                 <th>Current Stock</th>
@@ -627,7 +634,8 @@ export default function ProductList({ token, userRole, addToCart }) {
                         <span className="badge-ui gray">{p.category_name || 'General'}</span>
                       </td>
                       <td style={{ fontSize: '13px' }}>
-                        {p.size || '—'} / {p.color || '—'}
+                        <div>{p.size || '—'} / {p.material || '—'} / {p.brand || '—'}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{p.color || 'No finish'} · {p.unit_of_sale || 'piece'}{p.set_pieces ? ` (${p.set_pieces} pcs)` : ''}</div>
                       </td>
                       <td className="mono" style={{ fontWeight: '700' }}>{formatBirr(p.unit_price)}</td>
                       {!isRestricted && <td className="mono" style={{ color: 'var(--text-muted)' }}>{p.cost_price ? formatBirr(p.cost_price) : '—'}</td>}
@@ -726,7 +734,7 @@ export default function ProductList({ token, userRole, addToCart }) {
                   <span className="badge-ui gray">{p.category_name || 'General'}</span>
                 </div>
                 <div className="inventory-card-meta">
-                  <span>{p.size || '—'} / {p.color || '—'}</span>
+                  <span>{p.size || '—'} / {p.material || '—'} / {p.brand || '—'}</span>
                   <span className="mono" style={{ fontWeight: 700 }}>{formatBirr(p.unit_price)}</span>
                 </div>
                 <div className="inventory-card-stock">
@@ -789,7 +797,7 @@ export default function ProductList({ token, userRole, addToCart }) {
                 <label className="form-label">Product Name *</label>
                 <input
                   type="text"
-                  placeholder="e.g. Slim Fit Oxford Shirt"
+                  placeholder="e.g. Stainless Steel Saucepan"
                   value={newProduct.name}
                   onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                 />
@@ -851,60 +859,90 @@ export default function ProductList({ token, userRole, addToCart }) {
                 </datalist>
               </div>
 
-              {/* Size (category-aware) + Color */}
+              {/* Capacity + Material */}
               <div className="form-grid-2">
                 <div className="form-group">
-                  {getSizeType(newProduct.category_name) === 'clothing' && (
-                    <>
-                      <label className="form-label">Size</label>
-                      <select value={newProduct.size}
-                        onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}>
-                        <option value="">Select Clothing Size</option>
-                        {CLOTHING_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </>
-                  )}
-                  {getSizeType(newProduct.category_name) === 'shoes' && (
-                    <>
-                      <label className="form-label">Shoe Size (EU)</label>
-                      <select value={newProduct.size}
-                        onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}>
-                        <option value="">Select EU Size</option>
-                        {SHOE_SIZES_EU.map(s => (
-                          <option key={s.eu} value={`EU ${s.eu}`}>EU {s.eu} — ≈{s.cm} cm</option>
-                        ))}
-                      </select>
-                      <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
-                        EU sizing — measure foot heel to toe
-                      </span>
-                    </>
-                  )}
-                  {getSizeType(newProduct.category_name) === 'none' && (
-                    <>
-                      <label className="form-label">Size</label>
-                      <input type="text" value="One Size Fits All" disabled
-                        style={{ opacity: 0.5, cursor: 'not-allowed' }} />
-                      <span style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', display: 'block' }}>
-                        Neck ties are one-size-fits-all
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Color — datalist with common men's colors, free-type allowed */}
-                <div className="form-group">
-                  <label className="form-label">Color</label>
+                  <label className="form-label">Size / Capacity</label>
                   <input
                     type="text"
-                    list="men-colors-list"
-                    placeholder="e.g. Navy Blue (or type custom)"
+                    list="capacity-hints-list"
+                    placeholder="e.g. 28 cm, 3 L, Set of 5"
+                    value={newProduct.size}
+                    onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <datalist id="capacity-hints-list">
+                    {CAPACITY_HINTS.map(size => <option key={size} value={size} />)}
+                  </datalist>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Material</label>
+                  <input
+                    type="text"
+                    list="material-hints-list"
+                    placeholder="e.g. Stainless Steel"
+                    value={newProduct.material}
+                    onChange={(e) => setNewProduct({ ...newProduct, material: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <datalist id="material-hints-list">
+                    {MATERIAL_HINTS.map(material => <option key={material} value={material} />)}
+                  </datalist>
+                </div>
+              </div>
+
+              {/* Color + Brand */}
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Color / Finish</label>
+                  <input
+                    type="text"
+                    list="color-hints-list"
+                    placeholder="e.g. Silver"
                     value={newProduct.color}
                     onChange={(e) => setNewProduct({ ...newProduct, color: e.target.value })}
                     autoComplete="off"
                   />
-                  <datalist id="men-colors-list">
-                    {MEN_COLORS.map(c => <option key={c} value={c} />)}
+                  <datalist id="color-hints-list">
+                    {COLOR_HINTS.map(color => <option key={color} value={color} />)}
                   </datalist>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Brand</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Momi, Luminarc, Generic"
+                    value={newProduct.brand}
+                    onChange={(e) => setNewProduct({ ...newProduct, brand: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Unit + Pieces */}
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Unit of Sale</label>
+                  <select
+                    value={newProduct.unit_of_sale}
+                    onChange={(e) => setNewProduct({ ...newProduct, unit_of_sale: e.target.value, set_pieces: e.target.value === 'set' ? newProduct.set_pieces : '' })}
+                  >
+                    {UNIT_OPTIONS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Pieces in Set</label>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="e.g. 5"
+                    disabled={newProduct.unit_of_sale !== 'set'}
+                    value={newProduct.set_pieces}
+                    onChange={(e) => setNewProduct({ ...newProduct, set_pieces: e.target.value })}
+                    style={newProduct.unit_of_sale !== 'set' ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                  />
                 </div>
               </div>
 
@@ -927,9 +965,20 @@ export default function ProductList({ token, userRole, addToCart }) {
               {/* SKU */}
               <div className="form-group">
                 <label className="form-label">SKU (Leave blank to auto-generate)</label>
-                <input type="text" placeholder="e.g. CLT-20250601-0001"
+                <input type="text" placeholder="e.g. KIT-20250601-0001"
                   value={newProduct.sku}
                   onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description / Notes</label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Non-stick coating, care instructions, warranty note..."
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  style={{ resize: 'vertical', minHeight: '72px' }}
+                />
               </div>
 
               {addError && (
@@ -1027,48 +1076,90 @@ export default function ProductList({ token, userRole, addToCart }) {
 
               <div className="form-grid-2">
                 <div className="form-group">
-                  {getSizeType(editProduct.category_name) === 'clothing' && (
-                    <>
-                      <label className="form-label">Size</label>
-                      <select value={editProduct.size}
-                        onChange={(e) => setEditProduct({ ...editProduct, size: e.target.value })}>
-                        <option value="">Select Clothing Size</option>
-                        {CLOTHING_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </>
-                  )}
-                  {getSizeType(editProduct.category_name) === 'shoes' && (
-                    <>
-                      <label className="form-label">Shoe Size (EU)</label>
-                      <select value={editProduct.size}
-                        onChange={(e) => setEditProduct({ ...editProduct, size: e.target.value })}>
-                        <option value="">Select EU Size</option>
-                        {SHOE_SIZES_EU.map(s => (
-                          <option key={s.eu} value={`EU ${s.eu}`}>EU {s.eu} — ≈{s.cm} cm</option>
-                        ))}
-                      </select>
-                    </>
-                  )}
-                  {getSizeType(editProduct.category_name) === 'none' && (
-                    <>
-                      <label className="form-label">Size</label>
-                      <input type="text" value="One Size Fits All" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }} />
-                    </>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Color</label>
+                  <label className="form-label">Size / Capacity</label>
                   <input
                     type="text"
-                    list="men-colors-edit"
+                    list="capacity-hints-edit"
+                    value={editProduct.size}
+                    onChange={(e) => setEditProduct({ ...editProduct, size: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <datalist id="capacity-hints-edit">
+                    {CAPACITY_HINTS.map(size => <option key={size} value={size} />)}
+                  </datalist>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Material</label>
+                  <input
+                    type="text"
+                    list="material-hints-edit"
+                    value={editProduct.material}
+                    onChange={(e) => setEditProduct({ ...editProduct, material: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <datalist id="material-hints-edit">
+                    {MATERIAL_HINTS.map(material => <option key={material} value={material} />)}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Color / Finish</label>
+                  <input
+                    type="text"
+                    list="color-hints-edit"
                     value={editProduct.color}
                     onChange={(e) => setEditProduct({ ...editProduct, color: e.target.value })}
                     autoComplete="off"
                   />
-                  <datalist id="men-colors-edit">
-                    {MEN_COLORS.map(c => <option key={c} value={c} />)}
+                  <datalist id="color-hints-edit">
+                    {COLOR_HINTS.map(color => <option key={color} value={color} />)}
                   </datalist>
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">Brand</label>
+                  <input
+                    type="text"
+                    value={editProduct.brand}
+                    onChange={(e) => setEditProduct({ ...editProduct, brand: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-grid-2">
+                <div className="form-group">
+                  <label className="form-label">Unit of Sale</label>
+                  <select
+                    value={editProduct.unit_of_sale}
+                    onChange={(e) => setEditProduct({ ...editProduct, unit_of_sale: e.target.value, set_pieces: e.target.value === 'set' ? editProduct.set_pieces : '' })}
+                  >
+                    {UNIT_OPTIONS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Pieces in Set</label>
+                  <input
+                    type="number"
+                    min="1"
+                    disabled={editProduct.unit_of_sale !== 'set'}
+                    value={editProduct.set_pieces}
+                    onChange={(e) => setEditProduct({ ...editProduct, set_pieces: e.target.value })}
+                    style={editProduct.unit_of_sale !== 'set' ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description / Notes</label>
+                <textarea
+                  rows={3}
+                  value={editProduct.description}
+                  onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })}
+                  style={{ resize: 'vertical', minHeight: '72px' }}
+                />
               </div>
 
               <div className="form-group">
@@ -1167,7 +1258,7 @@ export default function ProductList({ token, userRole, addToCart }) {
                     <label className="form-label">New product name *</label>
                     <input
                       type="text"
-                      placeholder="e.g. Slim Fit Oxford Shirt — Revised"
+                      placeholder="e.g. Stainless Steel Saucepan - Revised"
                       value={replacementName}
                       onChange={(e) => setReplacementName(e.target.value)}
                     />
@@ -1227,7 +1318,7 @@ export default function ProductList({ token, userRole, addToCart }) {
                   rows={3}
                   placeholder={
                     parseInt(adjustData.quantity_change, 10) < 0
-                      ? 'Reason for reduction — e.g. damaged, expired, stolen, display sample'
+                      ? 'Reason for reduction - e.g. damaged, missing pieces, stolen, display sample'
                       : 'e.g. Replenishment shipment arrived from supplier'
                   }
                   value={adjustData.notes}
@@ -1263,7 +1354,7 @@ export default function ProductList({ token, userRole, addToCart }) {
             </div>
 
             <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '16px' }}>
-              QR label generated from the unique SKU. This tag can be physically printed and attached to the clothing hangers.
+              QR label generated from the unique SKU. This tag can be physically printed for shelf tags or item packaging.
             </p>
 
             <button 

@@ -1,6 +1,5 @@
-import React from 'react';
 import {
-  TrendingUp, Shirt, Award, AlertCircle, RefreshCw,
+  TrendingUp, UtensilsCrossed, Award, AlertCircle, RefreshCw,
   ShoppingCart, Users, ArrowRight, AlertTriangle
 } from 'lucide-react';
 import { formatBirr } from '../utils/formatBirr';
@@ -43,7 +42,7 @@ export default function Dashboard({
       title: 'Catalog Inventory Size',
       value: `${dbStockSummary?.total_units || 0} units`,
       sub: 'Currently registered stock shelf assets',
-      icon: Shirt,
+      icon: UtensilsCrossed,
       accent: 'metric-accent-blue',
       iconClass: 'metric-icon-blue',
     },

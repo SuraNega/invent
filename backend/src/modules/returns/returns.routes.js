@@ -16,10 +16,10 @@ router.post(
     body('product_id').isInt({ gt: 0 }).withMessage('product_id is required'),
     body('quantity').isInt({ gt: 0 }).withMessage('quantity must be > 0'),
     body('reason')
-      .isIn(['wrong_size', 'defective', 'changed_mind', 'other'])
+      .isIn(['wrong_item', 'defective', 'changed_mind', 'other'])
       .withMessage('Invalid reason'),
     body('condition')
-      .isIn(['resellable', 'damaged', 'missing_tags'])
+      .isIn(['resellable', 'damaged', 'incomplete_set'])
       .withMessage('Invalid condition'),
     body('refund_type')
       .isIn(['cash', 'store_credit', 'exchange'])

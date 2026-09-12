@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { TrendingUp, BarChart3, LineChart, PieChart as PieIcon, ShieldAlert, Award, Calendar, Printer, RefreshCw } from 'lucide-react';
+import { TrendingUp, BarChart3, LineChart, ShieldAlert, Award, Printer, RefreshCw } from 'lucide-react';
 import { formatBirr } from '../utils/formatBirr';
 import DailyStaffReport from './DailyStaffReport';
 import DatePickerFields from './DatePickerFields';
 import { INVENTORY_CHANGED_EVENT } from '../utils/inventoryEvents';
 
-export default function ReportsView({ token, userRole }) {
+export default function ReportsView({ token }) {
   const [salesSummary, setSalesSummary] = useState(null);
   const [stockValuation, setStockValuation] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
@@ -144,7 +144,7 @@ export default function ReportsView({ token, userRole }) {
   })) || [];
 
   // Pre-process returns breakdown chart
-  const returnsChartData = returnsSummary?.by_reason?.map((item, idx) => ({
+  const returnsChartData = returnsSummary?.by_reason?.map((item) => ({
     name: item.reason.replace('_', ' ').toUpperCase(),
     value: parseInt(item.count, 10)
   })) || [];
@@ -153,7 +153,7 @@ export default function ReportsView({ token, userRole }) {
     <div className="animate-fade">
       {/* Print-only Header Banner */}
       <div className="print-header-banner" style={{ display: 'none' }}>
-        <h1 style={{ fontSize: '24px', margin: '0 0 4px 0' }}>ClothTrack Inventory Management Systems</h1>
+        <h1 style={{ fontSize: '24px', margin: '0 0 4px 0' }}>Momi's Kitchenware Inventory Management System</h1>
         <p style={{ fontSize: '12px', margin: 0, color: '#555' }}>
           <strong>Analytical Report Export</strong> | Date Range: {dateFrom} to {dateTo} | Generated: {new Date().toLocaleString()}
         </p>
@@ -420,7 +420,7 @@ export default function ReportsView({ token, userRole }) {
         <div className="chart-card bg-glass" style={{ height: '360px' }}>
           <div className="chart-title-section">
             <h3 style={{ fontSize: '15px' }}>Stock Return Quality Audit</h3>
-            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Returned clothing quality logs</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Returned kitchenware quality logs</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px', overflowY: 'auto' }}>
             {returnsSummary?.by_condition?.length === 0 ? (

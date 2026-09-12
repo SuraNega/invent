@@ -12,7 +12,7 @@ async function start() {
     console.log('[DB] PostgreSQL connected successfully');
 
     app.listen(PORT, () => {
-      console.log(`[SERVER] ClothTrack API running on http://localhost:${PORT}`);
+      console.log(`[SERVER] Momi's Kitchenware API running on http://localhost:${PORT}`);
       console.log(`[SERVER] Environment: ${process.env.NODE_ENV || 'development'}`);
     });
   } catch (err) {

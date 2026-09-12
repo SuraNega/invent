@@ -1,5 +1,5 @@
 -- ============================================================
--- ClothTrack — Role rename migration
+-- Momi's Kitchenware — Role rename migration
 -- Old roles: owner, manager, cashier
 -- New roles: owner, cashier, sales
 --   manager  → cashier

@@ -3,7 +3,7 @@
 const pool = require('../../config/db');
 
 /**
- * Generates a unique SKU in the format: CLT-YYYYMMDD-XXXX
+ * Generates a unique SKU in the format: KIT-YYYYMMDD-XXXX
  * where XXXX is zero-padded count of products created today + 1.
  */
 async function generateSKU() {
@@ -12,11 +12,11 @@ async function generateSKU() {
 
   const { rows } = await pool.query(
     `SELECT COUNT(*) AS cnt FROM products WHERE sku LIKE $1`,
-    [`CLT-${datePart}-%`]
+    [`KIT-${datePart}-%`]
   );
 
   const sequence = (parseInt(rows[0].cnt, 10) + 1).toString().padStart(4, '0');
-  return `CLT-${datePart}-${sequence}`;
+  return `KIT-${datePart}-${sequence}`;
 }
 
 module.exports = { generateSKU };

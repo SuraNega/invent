@@ -13,8 +13,7 @@ function generateReturnCode() {
  * Process a customer return atomically:
  *  - INSERT returns row
  *  - If condition = 'resellable' → restore stock + stock_movement(type='return')
- *  - If condition = 'damaged'    → stock_movement(type='damaged'), no stock change
- *  - If condition = 'missing_tags' → same as damaged (no restore)
+ *  - If condition = 'damaged' or 'incomplete_set' → stock_movement(type='damaged'), no stock change
  *  - After commit: resolve any open low_stock_alert if stock now above threshold
  */
 async function processReturn(data, userId) {

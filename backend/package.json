@@ -1,7 +1,7 @@
 {
-  "name": "clothtrack-backend",
+  "name": "momis-kitchenware-backend",
   "version": "1.0.0",
-  "description": "ClothTrack — Cloth Inventory Management System API",
+  "description": "Momi's Kitchenware inventory management API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,7 +10,8 @@
     "db:seed": "psql -U postgres -d clothtrack -f src/db/seed.sql",
     "db:migrate-roles": "node src/db/run-migrate-roles.js",
     "db:migrate-discount": "node src/db/run-migrate-discount.js",
-    "db:setup-vercel": "node scripts/setup-vercel-db.js"
+    "db:setup-vercel": "node scripts/setup-vercel-db.js",
+    "db:reset": "node scripts/reset-db.js"
   },
   "engines": {
     "node": ">=18.0.0"

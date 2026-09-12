@@ -1,5 +1,5 @@
 -- ============================================================
--- ClothTrack — PostgreSQL Schema
+-- Momi's Kitchenware — PostgreSQL Schema
 -- Run: psql -U postgres -d clothtrack -f src/db/schema.sql
 -- ============================================================
 
@@ -15,11 +15,11 @@ CREATE TYPE payment_method AS ENUM (
 );
 
 CREATE TYPE return_reason AS ENUM (
-  'wrong_size', 'defective', 'changed_mind', 'other'
+  'wrong_item', 'defective', 'changed_mind', 'other'
 );
 
 CREATE TYPE return_condition AS ENUM (
-  'resellable', 'damaged', 'missing_tags'
+  'resellable', 'damaged', 'incomplete_set'
 );
 
 CREATE TYPE refund_type AS ENUM (
@@ -75,8 +75,12 @@ CREATE TABLE IF NOT EXISTS products (
   sku                 VARCHAR(50)     NOT NULL UNIQUE,
   category_id         INT             REFERENCES categories(id) ON DELETE SET NULL,
   supplier_id         INT             REFERENCES suppliers(id)  ON DELETE SET NULL,
-  size                VARCHAR(20),
+  size                VARCHAR(30),
   color               VARCHAR(50),
+  material            VARCHAR(50),
+  brand               VARCHAR(100),
+  unit_of_sale        VARCHAR(20)     NOT NULL DEFAULT 'piece',
+  set_pieces          INT,
   unit_price          DECIMAL(10, 2)  NOT NULL,
   cost_price          DECIMAL(10, 2),
   quantity            INT             NOT NULL DEFAULT 0,

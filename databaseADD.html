@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ClothTrack | Database Design Plan</title>
+    <title>Momi's Kitchenware | Database Design Plan</title>
     <style>
         * {
             margin: 0;
@@ -284,7 +284,7 @@
 <body>
 <div class="container">
     <div class="hero">
-        <div class="badge">ClothTrack — Standard Package</div>
+        <div class="badge">Momi's Kitchenware - Standard Package</div>
         <h1>📐 Database Design Plan</h1>
         <p>10 tables · Full QR flow · Staff logins · Stock history · Alerts · Reports · Returns</p>
     </div>
@@ -329,8 +329,8 @@
             { name: "created_at", type: "TIMESTAMP DEFAULT NOW()", note: "" },
             { name: "last_login", type: "TIMESTAMP NULL", note: "Track last activity" }
         ] },
-        { name: "categories", color: "amber", icon: "🏷️", purpose: "Organise clothes into types (shirts, jeans, dresses…)", feature: "Product catalog management", fields: [
-            { name: "id", type: "INT PK AI", note: "" }, { name: "name", type: "VARCHAR(100)", note: "e.g. 'Shirts', 'Jeans'" },
+        { name: "categories", color: "amber", icon: "🏷️", purpose: "Organise kitchenware into types (cookware, bakeware, tools)", feature: "Product catalog management", fields: [
+            { name: "id", type: "INT PK AI", note: "" }, { name: "name", type: "VARCHAR(100)", note: "e.g. 'Cookware', 'Bakeware'" },
             { name: "description", type: "TEXT NULL", note: "" }, { name: "created_at", type: "TIMESTAMP DEFAULT NOW()", note: "" }
         ] },
         { name: "suppliers", color: "coral", icon: "🏭", purpose: "Track who supplied each product — reorder from the right supplier", feature: "Supplier tracking", fields: [
@@ -339,8 +339,8 @@
             { name: "address", type: "TEXT NULL", note: "" }, { name: "notes", type: "TEXT NULL", note: "Free notes about the supplier" },
             { name: "created_at", type: "TIMESTAMP DEFAULT NOW()", note: "" }
         ] },
-        { name: "products", color: "teal", icon: "👗", purpose: "Every clothing item registered in the system — the core table", feature: "Product catalog + QR label printing", fields: [
-            { name: "id", type: "INT PK AI", note: "" }, { name: "name", type: "VARCHAR(150)", note: "e.g. 'Men's Blue Denim Jacket'" },
+        { name: "products", color: "teal", icon: "🍽️", purpose: "Every kitchenware item registered in the system - the core table", feature: "Product catalog + QR label printing", fields: [
+            { name: "id", type: "INT PK AI", note: "" }, { name: "name", type: "VARCHAR(150)", note: "e.g. 'Stainless Steel Saucepan'" },
             { name: "sku", type: "VARCHAR(50) UNIQUE", note: "Auto-generated or manual code" }, { name: "category_id", type: "INT FK → categories.id", note: "" },
             { name: "supplier_id", type: "INT FK → suppliers.id NULL", note: "" }, { name: "size", type: "VARCHAR(20) NULL", note: "S, M, L, XL, 32, etc." },
             { name: "color", type: "VARCHAR(50) NULL", note: "" }, { name: "unit_price", type: "DECIMAL(10,2)", note: "Selling price" },
@@ -375,8 +375,8 @@
             { name: "sale_id", type: "INT FK → sales.id NULL", note: "Original sale if known" },
             { name: "product_id", type: "INT FK → products.id", note: "" },
             { name: "quantity", type: "INT", note: "Number of items returned" },
-            { name: "reason", type: "ENUM('wrong_size','defective','changed_mind','other')", note: "Why the customer returned it" },
-            { name: "condition", type: "ENUM('resellable','damaged','missing_tags')", note: "Determines if item goes back to stock" },
+            { name: "reason", type: "ENUM('wrong_item','defective','changed_mind','other')", note: "Why the customer returned it" },
+            { name: "condition", type: "ENUM('resellable','damaged','incomplete_set')", note: "Determines if item goes back to stock" },
             { name: "refund_type", type: "ENUM('cash','store_credit','exchange')", note: "" },
             { name: "refund_amount", type: "DECIMAL(10,2) NULL", note: "Amount refunded to customer" },
             { name: "processed_by", type: "INT FK → users.id", note: "Staff who handled the return" },
@@ -418,11 +418,11 @@
     ];
 
     const scenario = [
-        { step: "1", actor: "Owner / Manager", title: "Register a new clothing item", color: "purple", icon: "👗", desc: "Manager opens the web app → clicks 'Add Product' → fills in name, size, color, price, category, supplier, and sets a low-stock threshold (e.g. 5 units).", db: "INSERT into products. INSERT into stock_movements (type='stock_in'). System auto-generates a unique SKU and QR data." },
-        { step: "2", actor: "Manager / Staff", title: "Print the QR label", color: "amber", icon: "🖨️", desc: "Clicks 'Print QR Label'. The browser generates the QR code image from the product SKU and sends it to a label printer. A sticker is physically attached to the clothing item or its hanger.", db: "INSERT into qr_print_log. UPDATE products.qr_printed_at." },
+        { step: "1", actor: "Owner / Manager", title: "Register a new kitchenware item", color: "purple", icon: "🍽️", desc: "Manager opens the web app → clicks 'Add Product' → fills in name, capacity, material, brand, price, category, supplier, and sets a low-stock threshold (e.g. 5 units).", db: "INSERT into products. INSERT into stock_movements (type='stock_in'). System auto-generates a unique SKU and QR data." },
+        { step: "2", actor: "Manager / Staff", title: "Print the QR label", color: "amber", icon: "🖨️", desc: "Clicks 'Print QR Label'. The browser generates the QR code image from the product SKU and sends it to a label printer. A sticker is physically attached to shelf tags or item packaging.", db: "INSERT into qr_print_log. UPDATE products.qr_printed_at." },
         { step: "3", actor: "Customer / Cashier", title: "Customer selects item — cashier scans QR", color: "teal", icon: "📲", desc: "Customer brings item to the counter. Cashier opens the POS screen on the website, points their phone camera (or USB scanner) at the QR code. The product is instantly recognised — no typing needed.", db: "SELECT products WHERE sku = scanned_value. Populates the cart." },
         { step: "4", actor: "Cashier", title: "Complete the sale", color: "teal", icon: "🛒", desc: "Cashier confirms quantity and clicks 'Confirm Sale'. System deducts from stock, records who made the sale, and prints a receipt.", db: "INSERT into sales. INSERT into sale_items. INSERT into stock_movements (type='sale', quantity_change=-N). UPDATE products.quantity." },
-        { step: "5", actor: "System (automatic)", title: "Low-stock alert fires", color: "amber", icon: "🔔", desc: "After the quantity update, the system checks: is products.quantity ≤ low_stock_threshold? If yes, an alert banner appears on the dashboard for the manager — 'Only 3 Blue Denim Jackets left!'", db: "INSERT into low_stock_alerts. Dashboard query: SELECT products WHERE quantity ≤ low_stock_threshold AND is_resolved=0." },
+        { step: "5", actor: "System (automatic)", title: "Low-stock alert fires", color: "amber", icon: "🔔", desc: "After the quantity update, the system checks: is products.quantity ≤ low_stock_threshold? If yes, an alert banner appears on the dashboard for the manager.", db: "INSERT into low_stock_alerts. Dashboard query: SELECT products WHERE quantity ≤ low_stock_threshold AND is_resolved=0." },
         { step: "6", actor: "Manager", title: "Restock — new items arrive", color: "coral", icon: "📦", desc: "Manager receives a new delivery from the supplier. Opens the product page, clicks 'Add Stock', enters the quantity received. The alert is automatically resolved.", db: "UPDATE products.quantity += N. INSERT into stock_movements (type='stock_in'). UPDATE low_stock_alerts SET is_resolved=1." },
         { step: "7", actor: "Owner", title: "Generate reports", color: "blue", icon: "📊", desc: "Owner opens Reports. Can see: sales by day / by employee / by product, stock history, who made each change, which supplier provided each item. Full audit trail.", db: "SELECT queries across sales, sale_items, stock_movements, users, products with JOIN and GROUP BY date/employee/product." }
     ];

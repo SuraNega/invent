@@ -31,6 +31,8 @@ async function listProducts(filters = {}) {
   if (filters.supplier_id) { conditions.push(`p.supplier_id = $${idx++}`); values.push(filters.supplier_id); }
   if (filters.size)        { conditions.push(`LOWER(p.size) = LOWER($${idx++})`); values.push(filters.size); }
   if (filters.color)       { conditions.push(`LOWER(p.color) = LOWER($${idx++})`); values.push(filters.color); }
+  if (filters.material)    { conditions.push(`LOWER(p.material) = LOWER($${idx++})`); values.push(filters.material); }
+  if (filters.brand)       { conditions.push(`LOWER(p.brand) = LOWER($${idx++})`); values.push(filters.brand); }
   if (filters.search) {
     conditions.push(`(LOWER(p.name) LIKE LOWER($${idx}) OR LOWER(p.sku) LIKE LOWER($${idx}))`);
     values.push(`%${filters.search}%`);
@@ -101,10 +103,10 @@ async function createProduct(data, userId) {
 
   const { rows } = await pool.query(
     `INSERT INTO products
-       (name, sku, category_id, supplier_id, size, color,
+       (name, sku, category_id, supplier_id, size, color, material, brand, unit_of_sale, set_pieces,
         unit_price, cost_price, quantity, low_stock_threshold,
         description, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING *`,
     [
       data.name,
@@ -113,6 +115,10 @@ async function createProduct(data, userId) {
       supplierId,
       data.size          || null,
       data.color         || null,
+      data.material      || null,
+      data.brand         || null,
+      data.unit_of_sale  || 'piece',
+      data.set_pieces    || null,
       data.unit_price,
       data.cost_price    || null,
       data.quantity      || 0,
@@ -145,7 +151,7 @@ async function updateProduct(id, data) {
   }
 
   const allowed = [
-    'name', 'category_id', 'supplier_id', 'size', 'color',
+    'name', 'category_id', 'supplier_id', 'size', 'color', 'material', 'brand', 'unit_of_sale', 'set_pieces',
     'unit_price', 'cost_price', 'low_stock_threshold', 'description',
   ];
   const updates = [];
@@ -288,12 +294,14 @@ async function transferStockToNewProduct(oldProduct, replacementName, userId, cl
        AND LOWER(name) = LOWER($1)
        AND COALESCE(LOWER(size), '') = COALESCE(LOWER($2), '')
        AND COALESCE(LOWER(color), '') = COALESCE(LOWER($3), '')
-       AND id != $4
+       AND COALESCE(LOWER(material), '') = COALESCE(LOWER($4), '')
+       AND COALESCE(LOWER(brand), '') = COALESCE(LOWER($5), '')
+       AND id != $6
      LIMIT 1`,
-    [name, oldProduct.size, oldProduct.color, oldProduct.id]
+    [name, oldProduct.size, oldProduct.color, oldProduct.material, oldProduct.brand, oldProduct.id]
   );
   if (dupRows.length) {
-    const err = new Error('An active product with this name, size, and color already exists');
+    const err = new Error('An active product with this name, capacity, material, color, and brand already exists');
     err.status = 400;
     throw err;
   }
@@ -303,10 +311,10 @@ async function transferStockToNewProduct(oldProduct, replacementName, userId, cl
 
   const { rows: newRows } = await client.query(
     `INSERT INTO products
-       (name, sku, category_id, supplier_id, size, color,
+       (name, sku, category_id, supplier_id, size, color, material, brand, unit_of_sale, set_pieces,
         unit_price, cost_price, quantity, low_stock_threshold,
         description, created_by)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING *`,
     [
       name,
@@ -315,6 +323,10 @@ async function transferStockToNewProduct(oldProduct, replacementName, userId, cl
       oldProduct.supplier_id,
       oldProduct.size,
       oldProduct.color,
+      oldProduct.material,
+      oldProduct.brand,
+      oldProduct.unit_of_sale,
+      oldProduct.set_pieces,
       oldProduct.unit_price,
       oldProduct.cost_price,
       qty,

@@ -14,7 +14,7 @@ import { isAmharicEnabled, reapplyAmharicTranslation } from './utils/googleTrans
 
 // Lucide Icons
 import { 
-  LayoutDashboard, ShoppingCart, Shirt, BarChart3, AlertCircle, LogOut, 
+  LayoutDashboard, ShoppingCart, UtensilsCrossed, BarChart3, AlertCircle, LogOut, 
   User, AlertTriangle, Search, Users, Menu, X, TrendingUp
 } from 'lucide-react';
 
@@ -287,8 +287,8 @@ export default function App() {
         </div>
         <div className="auth-card bg-glass animate-fade">
           <div className="auth-header">
-            <div className="brand-logo">👕</div>
-            <h2 className="auth-title">ClothTrack</h2>
+            <div className="brand-logo">🍽️</div>
+            <h2 className="auth-title">Momi's Kitchenware</h2>
             <p className="auth-subtitle">Sign in to inventory console & POS terminal</p>
           </div>
 
@@ -336,8 +336,8 @@ export default function App() {
     <div className="app-container">
       <header className="mobile-header">
         <div className="mobile-header-brand">
-          <div className="brand-logo">👕</div>
-          <span className="brand-name">ClothTrack</span>
+          <div className="brand-logo">🍽️</div>
+          <span className="brand-name">Momi's Kitchenware</span>
         </div>
         <div className="mobile-header-actions">
           <TranslateToggle compact />
@@ -364,8 +364,8 @@ export default function App() {
       {/* Sidebar — desktop always visible; mobile slide-in drawer */}
       <aside className={`sidebar${mobileMenuOpen ? ' sidebar--open' : ''}`}>
         <div className="brand-section">
-          <div className="brand-logo">👕</div>
-          <span className="brand-name">ClothTrack</span>
+          <div className="brand-logo">🍽️</div>
+          <span className="brand-name">Momi's Kitchenware</span>
         </div>
 
         <TranslateToggle className="sidebar-translate-toggle" />
@@ -391,7 +391,7 @@ export default function App() {
             onClick={() => handleNavClick('inventory')}
             className={`nav-item ${activeTab === 'inventory' ? 'active' : ''}`}
           >
-            <Shirt size={18} /> Inventory Catalog
+            <UtensilsCrossed size={18} /> Inventory Catalog
           </button>
 
           {isSales && (
@@ -504,7 +504,7 @@ export default function App() {
                 {/* 1. Real Camera QR Scanner Component */}
                 <QRScanner 
                   onScanSuccess={handleBarcodeLookup}
-                  onScanError={(err) => {}}
+                  onScanError={() => {}}
                 />
 
                 {/* 2. Manual Barcode/SKU Input Fallback */}
@@ -515,7 +515,7 @@ export default function App() {
                       <Search size={16} style={{ position: 'absolute', left: '12px', top: '14px', color: 'var(--text-dim)' }} />
                       <input 
                         type="text" 
-                        placeholder="e.g. CLT-20260601-1234"
+                        placeholder="e.g. KIT-20260601-1234"
                         value={skuSearchVal}
                         onChange={(e) => setSkuSearchVal(e.target.value)}
                         style={{ paddingLeft: '36px' }}

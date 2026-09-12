@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ShoppingBag, Trash2, CheckCircle, RotateCcw, Pencil, Check, X } from 'lucide-react';
 import { formatBirr } from '../utils/formatBirr';
 import { notifyInventoryChanged } from '../utils/inventoryEvents';
@@ -25,7 +25,7 @@ export default function POSCart({ cart, updateQty, removeFromCart, overrideLineT
 
   // Refund state
   const [refundForm, setRefundForm] = useState({
-    reason: 'wrong_size',
+    reason: 'wrong_item',
     condition: 'resellable',
     refund_type: 'cash',
     refund_amount: '',
@@ -262,7 +262,7 @@ export default function POSCart({ cart, updateQty, removeFromCart, overrideLineT
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Reason</label>
                   <select value={refundForm.reason} onChange={e => setRefundForm({ ...refundForm, reason: e.target.value })}>
-                    <option value="wrong_size">Wrong Size</option>
+                    <option value="wrong_item">Wrong Item</option>
                     <option value="defective">Defective</option>
                     <option value="changed_mind">Changed Mind</option>
                     <option value="other">Other</option>
@@ -273,7 +273,7 @@ export default function POSCart({ cart, updateQty, removeFromCart, overrideLineT
                   <select value={refundForm.condition} onChange={e => setRefundForm({ ...refundForm, condition: e.target.value })}>
                     <option value="resellable">Resellable</option>
                     <option value="damaged">Damaged</option>
-                    <option value="missing_tags">Missing Tags</option>
+                    <option value="incomplete_set">Incomplete Set</option>
                   </select>
                 </div>
               </div>
