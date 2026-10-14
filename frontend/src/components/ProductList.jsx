@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Plus, RefreshCw, Printer, AlertTriangle, X, ArrowRightLeft, Pencil, Trash2 } from 'lucide-react';
+import { Search, Plus, RefreshCw, Printer, Bluetooth, AlertTriangle, X, ArrowRightLeft, Pencil, Trash2 } from 'lucide-react';
 import { formatBirr } from '../utils/formatBirr';
 import { notifyInventoryChanged } from '../utils/inventoryEvents';
+import { printQrLabelViaBluetooth } from '../utils/bluetoothPrinter';
 
 export default function ProductList({ token, userRole, addToCart }) {
   const [products, setProducts] = useState([]);
@@ -54,6 +55,8 @@ export default function ProductList({ token, userRole, addToCart }) {
   });
 
   const [generatedQr, setGeneratedQr] = useState(null);
+  const [isBtPrinting, setIsBtPrinting] = useState(false);
+  const [btError, setBtError] = useState('');
 
   const MATERIAL_HINTS = [
     'Stainless Steel', 'Cast Iron', 'Non-stick', 'Ceramic', 'Glass',
@@ -518,9 +521,125 @@ export default function ProductList({ token, userRole, addToCart }) {
       if (!data.success) throw new Error(data.message || 'Failed to generate QR');
 
       setGeneratedQr(data.data.qr_image);
+      setBtError('');
       setShowQrModal(true);
     } catch (err) {
       alert(err.message);
+    }
+  };
+
+  const handleBluetoothPrint = async () => {
+    if (!activeProduct || !generatedQr) return;
+    setIsBtPrinting(true);
+    setBtError('');
+    try {
+      await printQrLabelViaBluetooth({
+        sku: activeProduct.sku,
+        name: activeProduct.name
+      });
+      setToast({ show: true, message: `QR label for ${activeProduct.sku} sent to printer!` });
+      setTimeout(() => setToast({ show: false, message: '' }), 3500);
+    } catch (err) {
+      if (err.name !== 'NotFoundError') {
+        setBtError(err.message || 'Failed to print via Bluetooth.');
+      }
+    } finally {
+      setIsBtPrinting(false);
+    }
+  };
+
+  const handleSystemPrint = () => {
+    if (!activeProduct || !generatedQr) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:58mm;height:70mm;border:0;';
+    document.body.appendChild(iframe);
+
+    const frameWindow = iframe.contentWindow;
+    const doc = iframe.contentDocument || frameWindow.document;
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${activeProduct.sku} - Label</title>
+  <style>
+    @page {
+      size: 58mm 70mm portrait;
+      margin: 0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 58mm;
+      background: #fff;
+      color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .label-wrap {
+      display: block;
+      width: 58mm;
+      text-align: center;
+    }
+    .qr-img {
+      display: block;
+      width: 30mm;
+      height: 30mm;
+      margin: 0 auto 1mm;
+      image-rendering: pixelated;
+    }
+    .sku-code {
+      display: block;
+      width: 100%;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      line-height: 1.2;
+      word-break: break-all;
+    }
+    .prod-name {
+      display: block;
+      width: 50mm;
+      margin: 2px auto 0;
+      font-size: 11px;
+      font-weight: 600;
+      color: #222;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="label-wrap">
+    <img src="${generatedQr}" class="qr-img" alt="QR" />
+    <div class="sku-code">${activeProduct.sku}</div>
+    <div class="prod-name">${activeProduct.name}</div>
+  </div>
+</body>
+</html>`);
+    doc.close();
+
+    const cleanup = () => {
+      frameWindow.removeEventListener('afterprint', cleanup);
+      iframe.remove();
+    };
+
+    const printFrame = () => {
+      frameWindow.addEventListener('afterprint', cleanup);
+      frameWindow.focus();
+      frameWindow.print();
+    };
+
+    const image = doc.querySelector('img');
+    if (image && !image.complete) {
+      image.onload = printFrame;
+      image.onerror = printFrame;
+    } else {
+      printFrame();
     }
   };
 
@@ -1357,21 +1476,32 @@ export default function ProductList({ token, userRole, addToCart }) {
               QR label generated from the unique SKU. This tag can be physically printed for shelf tags or item packaging.
             </p>
 
-            <button 
-              onClick={() => {
-                const win = window.open();
-                win.document.write(`<div style="display:flex; flex-direction:column; align-items:center; font-family:sans-serif; padding:20px;">
-                  <img src="${generatedQr}" width="220" />
-                  <div style="font-size:14px; font-weight:bold; margin-top:8px;">${activeProduct.sku}</div>
-                  <div style="font-size:12px; color:#444;">${activeProduct.name}</div>
-                </div>`);
-                win.print();
-              }}
-              className="btn-primary" 
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              Print Label Tag
-            </button>
+            {btError && (
+              <div style={{ background: 'var(--danger-glow)', color: 'var(--danger-color)', border: '1px solid var(--danger-color)', padding: '8px 10px', borderRadius: '6px', fontSize: '11px', marginBottom: '14px', textAlign: 'center' }}>
+                {btError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                onClick={handleBluetoothPrint}
+                disabled={isBtPrinting}
+                className="btn-primary" 
+                style={{ width: '100%', justifyContent: 'center', gap: '8px' }}
+              >
+                <Bluetooth size={16} />
+                {isBtPrinting ? 'Connecting & Printing...' : 'Direct Print (Bluetooth)'}
+              </button>
+
+              <button 
+                onClick={handleSystemPrint}
+                className="btn-secondary" 
+                style={{ width: '100%', justifyContent: 'center', gap: '8px' }}
+              >
+                <Printer size={16} />
+                System Print (58mm Tag)
+              </button>
+            </div>
           </div>
         </div>
       , document.body)}

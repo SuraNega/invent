@@ -1,6 +1,6 @@
 -- ============================================================
 -- Momi's Kitchenware — Seed Data
--- Run: psql -U postgres -d clothtrack -f src/db/seed.sql
+-- Run: psql -U postgres -d kitchenware -f src/db/seed.sql
 -- Default owner login: username=admin  password=admin123
 -- ============================================================
 

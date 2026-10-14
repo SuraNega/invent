@@ -114,7 +114,7 @@ function createPool() {
   return new Pool({
     host: 'localhost',
     port: 5432,
-    database: 'clothtrack',
+    database: 'kitchenware',
     user: 'postgres',
     password: process.env.DB_PASSWORD || '1234',
     max: 10,

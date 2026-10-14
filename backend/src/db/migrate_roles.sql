@@ -6,7 +6,7 @@
 --   cashier  → sales
 --
 -- Run on existing databases:
---   psql -U postgres -d clothtrack -f src/db/migrate_roles.sql
+--   psql -U postgres -d kitchenware -f src/db/migrate_roles.sql
 -- ============================================================
 
 -- Rename cashier → sales first (frees the name "cashier")

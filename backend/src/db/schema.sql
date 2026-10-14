@@ -1,6 +1,6 @@
 -- ============================================================
 -- Momi's Kitchenware — PostgreSQL Schema
--- Run: psql -U postgres -d clothtrack -f src/db/schema.sql
+-- Run: psql -U postgres -d kitchenware -f src/db/schema.sql
 -- ============================================================
 
 -- ── ENUM TYPES ──────────────────────────────────────────────
